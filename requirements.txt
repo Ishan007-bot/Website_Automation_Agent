@@ -1,0 +1,14 @@
+# Core browser automation (latest — needs Python-3.14-compatible greenlet wheels)
+playwright>=1.50.0
+
+# LLM providers
+groq>=0.11.0          # default backend (Llama 3.3 70B via Groq)
+google-genai>=1.0.0   # optional alternative backend (Gemini)
+
+# Web-UI
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+
+# Config + data models
+python-dotenv>=1.0.1
+pydantic>=2.9.0

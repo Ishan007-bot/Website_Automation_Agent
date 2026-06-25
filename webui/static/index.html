@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Website Automation Agent</title>
+  <style>
+    :root {
+      --bg: #0d1117; --panel: #161b22; --panel2: #1c2230; --border: #2b3340;
+      --text: #e6edf3; --muted: #8b949e; --accent: #ff007f; --accent2: #2f81f7;
+      --ok: #3fb950; --warn: #d29922; --err: #f85149;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg); color: var(--text); height: 100vh; overflow: hidden;
+    }
+    header {
+      display: flex; align-items: center; gap: 12px; padding: 14px 20px;
+      border-bottom: 1px solid var(--border); background: var(--panel);
+    }
+    header h1 { font-size: 16px; margin: 0; font-weight: 650; letter-spacing: .2px; }
+    header .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+    header .sub { color: var(--muted); font-size: 12px; margin-left: auto; }
+
+    .layout { display: grid; grid-template-columns: 380px 1fr; height: calc(100vh - 51px); }
+
+    .controls { border-right: 1px solid var(--border); padding: 18px; overflow-y: auto; background: var(--panel); }
+    label { display: block; font-size: 12px; color: var(--muted); margin: 14px 0 6px; }
+    textarea, input[type=text], input[type=number] {
+      width: 100%; background: var(--panel2); color: var(--text); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px; font-size: 13px; font-family: inherit; resize: vertical;
+    }
+    textarea { min-height: 84px; }
+    .row { display: flex; gap: 10px; align-items: center; }
+    .row > div { flex: 1; }
+    .checkbox { display: flex; align-items: center; gap: 8px; margin-top: 16px; font-size: 13px; color: var(--text); }
+    .btns { display: flex; gap: 10px; margin-top: 18px; }
+    button {
+      flex: 1; padding: 11px; border: none; border-radius: 8px; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: filter .15s;
+    }
+    button:hover:not(:disabled) { filter: brightness(1.12); }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+    #run { background: var(--accent); color: #fff; }
+    #stop { background: var(--panel2); color: var(--text); border: 1px solid var(--border); }
+    .examples { margin-top: 22px; }
+    .examples h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); }
+    .ex { background: var(--panel2); border: 1px solid var(--border); border-radius: 8px; padding: 9px 11px;
+          font-size: 12px; margin-bottom: 8px; cursor: pointer; color: var(--text); line-height: 1.4; }
+    .ex:hover { border-color: var(--accent2); }
+
+    .stage { display: grid; grid-template-rows: 1fr 240px; height: 100%; overflow: hidden; }
+    .screen { display: flex; align-items: center; justify-content: center; background: #05070a; overflow: hidden; position: relative; }
+    .screen img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .screen .placeholder { color: var(--muted); font-size: 14px; text-align: center; }
+    .badge { position: absolute; top: 12px; left: 12px; background: rgba(0,0,0,.6); border: 1px solid var(--border);
+             padding: 5px 10px; border-radius: 20px; font-size: 12px; color: var(--text); }
+    .badge .live { color: var(--accent); }
+
+    .log { border-top: 1px solid var(--border); background: var(--panel); overflow-y: auto; padding: 12px 16px; font-size: 12.5px; }
+    .entry { border-left: 3px solid var(--border); padding: 7px 12px; margin-bottom: 9px; background: var(--panel2); border-radius: 0 6px 6px 0; }
+    .entry .step { font-weight: 700; color: var(--accent2); }
+    .entry .k { color: var(--muted); }
+    .entry .act { color: var(--accent); font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+    .entry.info { border-left-color: var(--muted); color: var(--muted); }
+    .entry.result.ok { border-left-color: var(--ok); }
+    .entry.result.bad { border-left-color: var(--warn); }
+    .entry.error { border-left-color: var(--err); color: var(--err); }
+    .entry pre { white-space: pre-wrap; margin: 6px 0 0; color: var(--text); font-size: 12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="dot"></span>
+    <h1>Website Automation Agent</h1>
+    <span class="sub">mini browser-use · Gemini · Playwright</span>
+  </header>
+
+  <div class="layout">
+    <aside class="controls">
+      <label for="task">Task</label>
+      <textarea id="task" placeholder="e.g. Fill the Bug Title and Description fields on the form"></textarea>
+
+      <label for="url">Start URL (optional)</label>
+      <input type="text" id="url" placeholder="https://ui.shadcn.com/docs/forms/react-hook-form" />
+
+      <div class="row">
+        <div>
+          <label for="steps">Max steps</label>
+          <input type="number" id="steps" value="25" min="1" max="60" />
+        </div>
+      </div>
+
+      <label class="checkbox"><input type="checkbox" id="headless" /> Run headless (no visible window)</label>
+
+      <div class="btns">
+        <button id="run">▶ Run</button>
+        <button id="stop" disabled>■ Stop</button>
+      </div>
+
+      <div class="examples">
+        <h3>Example tasks</h3>
+        <div class="ex" data-url="https://ui.shadcn.com/docs/forms/react-hook-form"
+             data-task="Fill in the Bug Title field with 'Login button unresponsive' and the Description field with a clear paragraph of at least 20 characters describing the issue.">
+          📝 Fill the shadcn bug-report form (Title + Description)
+        </div>
+        <div class="ex" data-url=""
+             data-task="Go to flipkart.com, find the trending / best-selling mobile phones, and list the top 10 phone names with their prices.">
+          📱 Top 10 trending phones on Flipkart
+        </div>
+        <div class="ex" data-url="https://news.ycombinator.com"
+             data-task="Get the titles of the top 5 stories on Hacker News right now.">
+          📰 Top 5 Hacker News stories
+        </div>
+      </div>
+    </aside>
+
+    <main class="stage">
+      <div class="screen" id="screen">
+        <div class="placeholder">The live browser view will appear here once you run a task.</div>
+        <div class="badge" id="badge" style="display:none"><span class="live">●</span> Step <span id="badgeStep">0</span></div>
+      </div>
+      <div class="log" id="log"></div>
+    </main>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const log = $("log"), screen = $("screen"), badge = $("badge"), badgeStep = $("badgeStep");
+    let evtSource = null;
+
+    function setRunning(running) {
+      $("run").disabled = running;
+      $("stop").disabled = !running;
+    }
+
+    function addEntry(html, cls = "") {
+      const div = document.createElement("div");
+      div.className = "entry " + cls;
+      div.innerHTML = html;
+      log.appendChild(div);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function showShot(b64) {
+      if (!b64) return;
+      screen.querySelector(".placeholder")?.remove();
+      let img = screen.querySelector("img");
+      if (!img) { img = document.createElement("img"); screen.appendChild(img); }
+      img.src = "data:image/png;base64," + b64;
+    }
+
+    function esc(s) { return (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+    function handleEvent(e) {
+      const d = JSON.parse(e.data);
+      if (d.type === "step") {
+        badge.style.display = "block"; badgeStep.textContent = d.step;
+        showShot(d.screenshot);
+        const acts = (d.actions || []).map(a => `<div class="act">↳ ${esc(a)}</div>`).join("");
+        addEntry(
+          `<span class="step">Step ${d.step}</span> ` +
+          (d.evaluation ? `<span class="k">— ${esc(d.evaluation)}</span>` : "") +
+          `<div><span class="k">goal:</span> ${esc(d.next_goal)}</div>` + acts
+        );
+      } else if (d.type === "result") {
+        showShot(d.screenshot);
+        addEntry(
+          `<b>${d.success ? "✅ Completed" : "⚠️ Ended"}</b><pre>${esc(d.message)}</pre>`,
+          "result " + (d.success ? "ok" : "bad")
+        );
+      } else if (d.type === "error") {
+        addEntry(`❌ ${esc(d.message)}`, "error");
+      } else if (d.type === "info") {
+        addEntry(esc(d.message), "info");
+      } else if (d.type === "end") {
+        finish();
+      }
+    }
+
+    function finish() {
+      setRunning(false);
+      badge.style.display = "none";
+      if (evtSource) { evtSource.close(); evtSource = null; }
+    }
+
+    async function run() {
+      const task = $("task").value.trim();
+      if (!task) { $("task").focus(); return; }
+      log.innerHTML = "";
+      screen.querySelector("img")?.remove();
+      if (!screen.querySelector(".placeholder")) {
+        const p = document.createElement("div"); p.className = "placeholder";
+        p.textContent = "Starting browser…"; screen.appendChild(p);
+      }
+      setRunning(true);
+
+      const res = await fetch("/run", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          task, url: $("url").value.trim(),
+          headless: $("headless").checked, max_steps: parseInt($("steps").value || "25", 10),
+        }),
+      });
+      const data = await res.json();
+      if (!data.ok) { addEntry("❌ " + esc(data.error), "error"); setRunning(false); return; }
+
+      evtSource = new EventSource("/stream");
+      evtSource.onmessage = handleEvent;
+      evtSource.onerror = () => { /* stream ends naturally on the 'end' event */ };
+    }
+
+    $("run").addEventListener("click", run);
+    $("stop").addEventListener("click", async () => { await fetch("/stop", { method: "POST" }); });
+    document.querySelectorAll(".ex").forEach(el => el.addEventListener("click", () => {
+      $("task").value = el.dataset.task; $("url").value = el.dataset.url || "";
+    }));
+  </script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.venv-win/
+venv/
+
+# Runtime artifacts
+screenshots/
+runs/
+logs/
+*.log
