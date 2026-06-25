@@ -92,7 +92,9 @@ class Agent:
 
     async def _loop(self) -> AgentRunResult:
         for step in range(1, self.max_steps + 1):
-            dom_state = await self.dom.get_state(draw_highlights=True)
+            # draw_highlights=False: detect/number elements as usual, but don't
+            # paint the pink boxes onto the page (keeps the real browser clean).
+            dom_state = await self.dom.get_state(draw_highlights=False)
             screenshot = await self.session.take_screenshot()
             url = await self.session.current_url()
             title = await self.session.title()

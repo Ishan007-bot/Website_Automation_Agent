@@ -12,7 +12,9 @@
 
 (function () {
   const args = arguments[0] || {};
-  const drawHighlights = args.drawHighlights !== false;
+  // Default OFF: only draw the highlight boxes when explicitly asked. The agent
+  // always removes any previous overlay below, so leftover boxes get cleaned up.
+  const drawHighlights = args.drawHighlights === true;
 
   // Remove highlights from a previous step.
   const old = document.getElementById("__agent_highlights__");
